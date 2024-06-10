@@ -1,0 +1,8 @@
+numpy
+pyperclip
+PyQt5
+pynput
+simpleaudio
+sounddevice
+soundfile
+whisper
