@@ -40,6 +40,11 @@ This project is inspired by [interactive-applications/speech-to-clipboard](https
     ```bash
     pip install -r requirements.txt
 
+5. Install OpenAI Whisper:
+    ```bash
+    pip install openai-whisper
+
+
 ## Usage
 
 1. Run the application:
@@ -53,6 +58,18 @@ This project is inspired by [interactive-applications/speech-to-clipboard](https
 - Click "Start" to begin recording.
 - Use the global hotkey cmd+shift+r to start/stop recording.
 - The transcription will be copied to the clipboard and displayed in the UI.
+
+### Word Mappings
+
+You can customize the transcription by specifying word mappings in a word_mappings.txt file. This file should be placed in the same directory as WhisperClip.py.
+
+Example word_mappings.txt
+    ```bash
+    nico:niko
+    example:sample
+    test:exam
+
+Each line in the word_mappings.txt file should follow the format word:replacement, where word is the word you want to replace and replacement is the word you want to use instead. The transcription process will replace each instance of word with replacement in the final transcribed text.
 
 ## Contributing
 
@@ -80,3 +97,7 @@ Built With
 - sounddevice
 - soundfile
 - pyperclip
+
+## License
+
+This project is licensed under the MIT License.
