@@ -2,7 +2,7 @@ import sys
 import time
 import re
 import simpleaudio as sa
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QRadioButton, QButtonGroup, QLabel, QComboBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QRadioButton, QButtonGroup, QLabel, QComboBox, QCheckBox
 import whisper
 import sounddevice as sd
 import soundfile as sf
@@ -26,6 +26,7 @@ class App(QWidget):
         self.recording = False
         self.audio_data = []
         self.word_mappings = self.load_word_mappings("word_mappings.txt")
+        self.sound_enabled = True  # Default sound setting
         self.initUI()
         self.setup_hotkeys()  # Setup hotkeys
 
@@ -92,6 +93,11 @@ class App(QWidget):
         self.transcription_label = QLabel("", self)
         self.layout.addWidget(self.transcription_label)
 
+        self.sound_checkbox = QCheckBox("Enable Sound Notifications", self)
+        self.sound_checkbox.setChecked(True)
+        self.sound_checkbox.stateChanged.connect(self.toggle_sound)
+        self.layout.addWidget(self.sound_checkbox)
+
         self.setLayout(self.layout)
         self.setWindowTitle('Voice Transcription')
         self.show()
@@ -122,6 +128,9 @@ class App(QWidget):
         self.recording = False
 
     def transcribe_audio(self):
+        if not self.audio_data:
+            self.info_label.setText("No audio data to transcribe.")
+            return 0
         lang = "en" if self.lang_en.isChecked() else "pt"
         audio = np.concatenate(self.audio_data, axis=0).flatten()
         start_time = time.time()
@@ -133,7 +142,8 @@ class App(QWidget):
         self.info_label.setText(f"Transcription copied to clipboard! Transcription time: {transcribe_time:.2f} ms")
         self.transcription_label.setText(f"Transcription:\n{transcribed_text}")
         print("Transcription copied to clipboard!")
-        self.play_notification_sound()
+        if self.sound_enabled:
+            self.play_notification_sound()
         return transcribe_time
 
     def start_recording(self):
@@ -147,7 +157,7 @@ class App(QWidget):
     def on_start_stop(self):
         if self.start_button.text() == 'Start':
             self.start_recording()
-        else:
+        elif self.start_button.text() == 'Stop':
             self.stop_recording()
             self.record_audio_thread.join()
             self.start_button.setText('Processing...')
@@ -157,7 +167,10 @@ class App(QWidget):
             self.start_button.setEnabled(True)
             self.start_button.setText("Start")
             self.play_button.setEnabled(True)  # Enable play button after recording
-            self.info_label.setText(f"Recording length: {record_time:.2f} ms\nTranscription copied to clipboard! Transcription time: {transcribe_time:.2f} ms")
+            if transcribe_time > 0:
+                self.info_label.setText(f"Recording length: {record_time:.2f} ms\nTranscription copied to clipboard! Transcription time: {transcribe_time:.2f} ms")
+        else:
+            print("Unexpected state for start button")
 
     def clear_ui(self):
         self.info_label.setText("")
@@ -190,6 +203,9 @@ class App(QWidget):
 
     def play_notification_sound(self):
         os.system('afplay /System/Library/Sounds/Ping.aiff')
+
+    def toggle_sound(self, state):
+        self.sound_enabled = state == 2
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
