@@ -2,7 +2,7 @@ import sys
 import time
 import re
 import simpleaudio as sa
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QRadioButton, QButtonGroup, QLabel, QComboBox, QCheckBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QRadioButton, QButtonGroup, QLabel, QComboBox, QCheckBox, QTextEdit
 import whisper
 import sounddevice as sd
 import soundfile as sf
@@ -11,8 +11,13 @@ import pyperclip
 import threading
 import os
 from pynput import keyboard
+from PyQt5.QtCore import pyqtSignal, QObject  # Ensure QObject is imported
 
 class App(QWidget):
+    # Add a signal to update the transcription text
+    update_transcription_signal = pyqtSignal(str)
+    start_stop_signal = pyqtSignal()  # Add a signal for start/stop
+
     def __init__(self):
         super().__init__()
         self.models_info = {
@@ -29,6 +34,8 @@ class App(QWidget):
         self.sound_enabled = True  # Default sound setting
         self.initUI()
         self.setup_hotkeys()  # Setup hotkeys
+        self.update_transcription_signal.connect(self.update_transcription)  # Connect the signal to the slot
+        self.start_stop_signal.connect(self.on_start_stop)  # Connect the signal to the slot
 
     def load_word_mappings(self, filepath):
         mappings = {}
@@ -90,7 +97,8 @@ class App(QWidget):
         self.info_label = QLabel("", self)
         self.layout.addWidget(self.info_label)
 
-        self.transcription_label = QLabel("", self)
+        self.transcription_label = QTextEdit(self)  # {{ edit_1 }}
+        self.transcription_label.setReadOnly(True)  # {{ edit_2 }}
         self.layout.addWidget(self.transcription_label)
 
         self.sound_checkbox = QCheckBox("Enable Sound Notifications", self)
@@ -104,7 +112,7 @@ class App(QWidget):
 
     def setup_hotkeys(self):
         def on_activate():
-            self.on_start_stop()
+            self.start_stop_signal.emit()  # Emit the signal instead of calling the method directly
 
         self.listener = keyboard.GlobalHotKeys({
             '<cmd>+<shift>+r': on_activate
@@ -140,7 +148,10 @@ class App(QWidget):
         transcribed_text = self.apply_word_mappings(result['text'])
         pyperclip.copy(transcribed_text)
         self.info_label.setText(f"Transcription copied to clipboard! Transcription time: {transcribe_time:.2f} ms")
-        self.transcription_label.setText(f"Transcription:\n{transcribed_text}")
+        
+        # Emit the signal to update the transcription text
+        self.update_transcription_signal.emit(transcribed_text)  # {{ edit_1 }}
+        
         print("Transcription copied to clipboard!")
         if self.sound_enabled:
             self.play_notification_sound()
@@ -206,6 +217,10 @@ class App(QWidget):
 
     def toggle_sound(self, state):
         self.sound_enabled = state == 2
+
+    # Add a new method to update the transcription text
+    def update_transcription(self, text):
+        self.transcription_label.setText(f"Transcription:\n{text}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
